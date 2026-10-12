@@ -22,3 +22,18 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment variables
+.env
+.env.*
+
+# Allow example environment files
+!.env.example
+
+# Generated Prisma Client
+/server/generated/prisma/
+
+# Prisma AI coding skills
+/server/.agents/
+/server/.claude/
+/server/.windsurf/
