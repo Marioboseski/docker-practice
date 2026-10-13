@@ -6,3 +6,17 @@ export const getProducts = async (req: Request, res: Response) => {
 
   return res.json(products);
 }
+
+export const getProductById = async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  const product = await productService.getProductById(Number(id));
+
+  if (!product) {
+    return res.status(404).json({
+      message: "Product not found"
+    })
+  }
+
+  return res.json(product);
+}
