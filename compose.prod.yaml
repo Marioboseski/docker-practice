@@ -1,0 +1,99 @@
+
+services:
+  frontend:
+    image: marioboseski/docker-practice-client:1.0.0
+    build:
+      context: ./client
+      dockerfile: Dockerfile.prod
+      args:
+        VITE_API_URL: ""
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_started
+    restart: unless-stopped
+    init: true
+
+  backend:
+    image: marioboseski/docker-practice-server:1.0.0
+    build:
+      context: ./server
+      dockerfile: Dockerfile.prod
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_HOST: db
+      DATABASE_PORT: 3306
+      DATABASE_USER: web_shop_user
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in root .env}
+      DATABASE_NAME: web_shop_db
+      DATABASE_URL: mysql://web_shop_user:${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in root .env}@db:3306/web_shop_db
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      seed:
+        condition: service_completed_successfully  
+        
+    restart: unless-stopped
+    init: true
+
+  migrate:
+    image: marioboseski/docker-practice-server-migrate:1.0.0
+    build:
+      context: ./server
+      dockerfile: Dockerfile.prod
+      target: build
+    command: ["npx", "prisma", "migrate", "deploy"]
+    environment:
+      DATABASE_HOST: db
+      DATABASE_PORT: 3306
+      DATABASE_USER: web_shop_user
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in root .env}
+      DATABASE_NAME: web_shop_db
+      DATABASE_URL: mysql://web_shop_user:${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in root .env}@db:3306/web_shop_db
+
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+    
+  seed:
+    image: marioboseski/docker-practice-server-migrate:1.0.0
+    command: ["npx", "prisma", "db", "seed"]
+    environment:
+      DATABASE_HOST: db
+      DATABASE_PORT: 3306
+      DATABASE_USER: web_shop_user
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in root .env}
+      DATABASE_NAME: web_shop_db
+      DATABASE_URL: mysql://web_shop_user:${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in root .env}@db:3306/web_shop_db
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: "no"
+
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: web_shop_db
+      MYSQL_USER: web_shop_user
+      MYSQL_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in root .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in root .env}
+    volumes:
+      - mysql_data_prod:/var/lib/mysql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'mysqladmin ping -h 127.0.0.1 -u root --password="$$MYSQL_ROOT_PASSWORD" --silent'
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+volumes:
+  mysql_data_prod:
