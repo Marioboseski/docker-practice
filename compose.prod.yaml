@@ -2,11 +2,6 @@
 services:
   frontend:
     image: marioboseski/docker-practice-client:1.0.0
-    build:
-      context: ./client
-      dockerfile: Dockerfile.prod
-      args:
-        VITE_API_URL: ""
     ports:
       - "8080:80"
     depends_on:
@@ -17,9 +12,6 @@ services:
 
   backend:
     image: marioboseski/docker-practice-server:1.0.0
-    build:
-      context: ./server
-      dockerfile: Dockerfile.prod
     environment:
       NODE_ENV: production
       PORT: 5000
@@ -35,17 +27,12 @@ services:
       migrate:
         condition: service_completed_successfully
       seed:
-        condition: service_completed_successfully  
-        
+        condition: service_completed_successfully    
     restart: unless-stopped
     init: true
 
   migrate:
     image: marioboseski/docker-practice-server-migrate:1.0.0
-    build:
-      context: ./server
-      dockerfile: Dockerfile.prod
-      target: build
     command: ["npx", "prisma", "migrate", "deploy"]
     environment:
       DATABASE_HOST: db
